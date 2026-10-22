@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const header = document.querySelector('.site-header');
   const menuToggle = document.getElementById('menuToggle');
+  const drawerClose = document.getElementById('drawerClose');
+  const navBackdrop = document.getElementById('navBackdrop');
   const navLinks = document.getElementById('navLinks');
   const navItems = document.querySelectorAll('.nav-link');
   const faqItems = document.querySelectorAll('.faq-item');
@@ -56,31 +58,73 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.addEventListener('scroll', () => {
-    if (window.scrollY > 30) {
+    if (window.scrollY > 20) {
       header.classList.add('scrolled');
     } else {
       header.classList.remove('scrolled');
     }
+  }, { passive: true });
+
+  function openDrawer() {
+    if (!navLinks) return;
+    navLinks.classList.add('open');
+    if (navBackdrop) navBackdrop.classList.add('open');
+    if (menuToggle) menuToggle.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    if (!navLinks) return;
+    navLinks.classList.remove('open');
+    if (navBackdrop) navBackdrop.classList.remove('open');
+    if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
+    if (!modalBackdrop.classList.contains('open')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  if (menuToggle) {
+    menuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (navLinks.classList.contains('open')) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    });
+  }
+
+  if (drawerClose) {
+    drawerClose.addEventListener('click', closeDrawer);
+  }
+
+  if (navBackdrop) {
+    navBackdrop.addEventListener('click', closeDrawer);
+  }
+
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      closeDrawer();
+    });
   });
 
-  if (menuToggle && navLinks) {
-    menuToggle.addEventListener('click', () => {
-      navLinks.classList.toggle('open');
-      const expanded = menuToggle.getAttribute('aria-expanded') === 'true' || false;
-      menuToggle.setAttribute('aria-expanded', !expanded);
-    });
+  let touchStartX = 0;
+  let touchCurrentX = 0;
 
-    navItems.forEach(item => {
-      item.addEventListener('click', () => {
-        navLinks.classList.remove('open');
-        menuToggle.setAttribute('aria-expanded', 'false');
-      });
-    });
+  if (navLinks) {
+    navLinks.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchCurrentX = touchStartX;
+    }, { passive: true });
 
-    document.addEventListener('click', (e) => {
-      if (!navLinks.contains(e.target) && !menuToggle.contains(e.target) && navLinks.classList.contains('open')) {
-        navLinks.classList.remove('open');
-        menuToggle.setAttribute('aria-expanded', 'false');
+    navLinks.addEventListener('touchmove', (e) => {
+      touchCurrentX = e.touches[0].clientX;
+    }, { passive: true });
+
+    navLinks.addEventListener('touchend', () => {
+      const diffX = touchCurrentX - touchStartX;
+      if (diffX > 60) {
+        closeDrawer();
       }
     });
   }
@@ -108,7 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeModal() {
     modalBackdrop.classList.remove('open');
     modalBackdrop.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    if (!navLinks.classList.contains('open')) {
+      document.body.style.overflow = '';
+    }
   }
 
   document.querySelectorAll('[data-legal-modal]').forEach(trigger => {
@@ -132,8 +178,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modalBackdrop.classList.contains('open')) {
-      closeModal();
+    if (e.key === 'Escape') {
+      if (modalBackdrop.classList.contains('open')) {
+        closeModal();
+      }
+      if (navLinks && navLinks.classList.contains('open')) {
+        closeDrawer();
+      }
     }
   });
 
@@ -177,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
           formFeedback.className = 'form-feedback';
           formFeedback.textContent = '';
         }, 7000);
-      }, 950);
+      }, 900);
     });
   }
 });
